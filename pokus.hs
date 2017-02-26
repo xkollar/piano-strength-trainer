@@ -34,17 +34,22 @@ listDevices = do
 printDevices :: IO ()
 printDevices = listDevices >>= mapM_ print
 
+canvasW = 800
+canvasH = 600
+
+canvasDim = (canvasW, canvasH)
+
 mainGr :: Int -> IO ()
 mainGr n = do
     mainW <- initHTk [text "MIDI Plot"]
     devInfo <- getNumberedDeviceInfo n
     l <- newLabel mainW [text $ show devInfo]
-    c <- newCanvas mainW [size (320,240), background "white"]
+    c <- newCanvas mainW [size canvasDim, background "white"]
     pack l [Expand On]
     pack c [Expand On]
     a <- createLine c [coord [], -- [(0,0),(10,10)],
                   capstyle CapRound, joinstyle JoinMiter,
-                  filling "black",  outlinewidth 2]
+                  filling "black",  outlinewidth 1]
     spawnEvent . always $ midiMagic a n
 
     finishHTk
@@ -84,8 +89,9 @@ midiMagic l n = do
             void . lift $ (l # coord (map whoop s))
             pure ()
       where
-        whoop = fff *** fff
-        fff x = fromIntegral $ x * 2 + 10
+        whoop = fixInst *** fixStren
+        fixInst n = fromIntegral n * canvasW `div` 127
+        fixStren n = (127-fromIntegral n) * canvasH `div` 127
         dec@PMMsg{..} = decodeMsg message
 
         k = fromIntegral data1
