@@ -14,7 +14,7 @@ import Control.Monad.State
 import Sound.PortMidi
 import HTk.Toplevel.HTk
 
-data NumberedDeviceInfo = NumberedDeviceInfo Int DeviceInfo
+data NumberedDeviceInfo = NumberedDeviceInfo DeviceID DeviceInfo
 
 instance Show NumberedDeviceInfo where
     show (NumberedDeviceInfo i DeviceInfo{..}) =
@@ -23,7 +23,7 @@ instance Show NumberedDeviceInfo where
         inf = (interface:) . f output "output" $ f input "input" []
         f b x = if b then (x:) else id
 
-getNumberedDeviceInfo :: Int -> IO NumberedDeviceInfo
+getNumberedDeviceInfo :: DeviceID -> IO NumberedDeviceInfo
 getNumberedDeviceInfo i = NumberedDeviceInfo i <$> getDeviceInfo i
 
 listDevices :: IO [NumberedDeviceInfo]
@@ -39,7 +39,7 @@ canvasH = 600
 
 canvasDim = (canvasW, canvasH)
 
-mainGr :: Int -> IO ()
+mainGr :: DeviceID -> IO ()
 mainGr n = do
     mainW <- initHTk [text "MIDI Plot"]
     devInfo <- getNumberedDeviceInfo n
@@ -47,9 +47,14 @@ mainGr n = do
     c <- newCanvas mainW [size canvasDim, background "white"]
     pack l [Expand On]
     pack c [Expand On]
-    a <- createLine c [coord [],
-                  capstyle CapRound, joinstyle JoinMiter,
-                  filling "black",  outlinewidth 1]
+    a <- createLine c
+        [ coord []
+        , capstyle CapRound
+        , joinstyle JoinMiter
+        , filling "black"
+        , outlinewidth 1
+        ]
+    koliecko <- createOval c [size (5,5)]
     kt <- spawnEvent . always $ midiMagic a n
 
     finishHTk
@@ -75,7 +80,7 @@ main = do
 
 --------------
 
-midiMagic :: Line -> Int -> IO ()
+midiMagic :: Line -> DeviceID -> IO ()
 midiMagic l n = do
     openInput n >>= \case
         Left s -> runStream pe s
