@@ -82,10 +82,7 @@ main = do
 --------------
 
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = do
-    openInput n >>= \case
-        Left s -> withEvents pe s
-        Right e -> print e
+midiMagic l n = withDeviceStream n $ withEvents pe
   where
     pe :: PMEvent -> Huu ()
     pe PMEvent{..} = do
