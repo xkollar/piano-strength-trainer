@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
+import Control.Arrow ((***))
 import Control.Concurrent (threadDelay)
 import Data.Maybe
 import qualified Data.Map.Strict as Map
@@ -44,7 +45,7 @@ mainGr n = do
     a <- createLine c [coord [], -- [(0,0),(10,10)],
                   capstyle CapRound, joinstyle JoinMiter,
                   filling "black",  outlinewidth 2]
-    spawnEvent . always $ magic a 0 []
+    spawnEvent . always $ midiMagic a n
 
     finishHTk
 
@@ -66,6 +67,33 @@ main = do
     initialize
     getArgs >>= main'
 
+--------------
+
+midiMagic :: Line -> Int -> IO ()
+midiMagic l n = do
+    openInput n >>= \case
+        Left s -> runStream pe s
+        Right e -> print e
+  where
+    pe :: PMEvent -> Huu ()
+    pe PMEvent{..} = do
+        when (status == midiDown) $ do
+            lift $ print (timestamp, dec)
+            modify $ Map.insert k v
+            s <- Map.toList <$> get
+            void . lift $ (l # coord (map whoop s))
+            pure ()
+      where
+        whoop = fff *** fff
+        fff x = fromIntegral $ x * 2 + 10
+        dec@PMMsg{..} = decodeMsg message
+
+        k = fromIntegral data1
+
+        v = fromIntegral data2
+
+--------------
+
 type Huu = StateT (Map.Map Int Int) IO
 
 runHuu :: Huu a -> IO a
@@ -74,14 +102,14 @@ runHuu a = evalStateT a Map.empty
 main2 = do
     initialize >>= print
     openInput 3 >>= \case
-        Left s -> runStream s
+        Left s -> runStream procEvent s
         Right e -> print e
   where
     noDevice = error "no default input device"
 
-runStream s = runHuu . forever $ do
+runStream f s = runHuu . forever $ do
     lift (readEvents s) >>= \case
-        Left evs -> mapM_ procEvent evs
+        Left evs -> mapM_ f evs
         Right NoError -> pure ()
         Right e -> lift $ print e
     lift $ threadDelay 1000
