@@ -47,12 +47,13 @@ mainGr n = do
     c <- newCanvas mainW [size canvasDim, background "white"]
     pack l [Expand On]
     pack c [Expand On]
-    a <- createLine c [coord [], -- [(0,0),(10,10)],
+    a <- createLine c [coord [],
                   capstyle CapRound, joinstyle JoinMiter,
                   filling "black",  outlinewidth 1]
-    spawnEvent . always $ midiMagic a n
+    kt <- spawnEvent . always $ midiMagic a n
 
     finishHTk
+    kt
 
 magic :: Line -> Integer -> [(Distance,Distance)] -> IO ()
 magic l = f
