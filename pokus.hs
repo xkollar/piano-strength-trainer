@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RecordWildCards #-}
 
+import Control.Exception (bracket)
 import Control.Arrow ((***))
 import Control.Concurrent (threadDelay)
 import Data.Maybe
@@ -83,7 +84,7 @@ main = do
 midiMagic :: Line -> DeviceID -> IO ()
 midiMagic l n = do
     openInput n >>= \case
-        Left s -> runStream pe s
+        Left s -> withEvents pe s
         Right e -> print e
   where
     pe :: PMEvent -> Huu ()
@@ -111,20 +112,25 @@ type Huu = StateT (Map.Map Int Int) IO
 runHuu :: Huu a -> IO a
 runHuu a = evalStateT a Map.empty
 
-main2 = do
-    initialize >>= print
-    openInput 3 >>= \case
-        Left s -> runStream procEvent s
-        Right e -> print e
-  where
-    noDevice = error "no default input device"
+openInput' :: DeviceID -> IO PMStream
+openInput' n = openInput n >>= \case
+    Left s -> pure s
+    Right e -> error (show e)
 
-runStream f s = runHuu . forever $ do
+withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
+withDeviceStream n = bracket (openInput' n) close
+
+main3 n = withDeviceStream n . withEvents $ \ ev -> do
+    lift $ print ev
+
+withEvents f s = runHuu . forever $ do
     lift (readEvents s) >>= \case
         Left evs -> mapM_ f evs
         Right NoError -> pure ()
         Right e -> lift $ print e
-    lift $ threadDelay 1000
+    -- it is OK to check only so often, as eye won't process
+    -- in at higher frequency than 100fps anyway...
+    lift $ threadDelay 10000
 
 midiDown = 0x90
 midiUp = 0x80
