@@ -8,7 +8,7 @@ import Data.Monoid
 import Data.List (intercalate)
 import System.Environment (getArgs)
 
-import Control.Monad.State (StateT)
+import Control.Monad.State
 
 import Sound.PortMidi
 import HTk.Toplevel.HTk
@@ -66,29 +66,37 @@ main = do
     initialize
     getArgs >>= main'
 
-midiDown = 0x90
-midiUp = 0x80
-
 type Huu = StateT (Map.Map Int Int) IO
+
+runHuu :: Huu a -> IO a
+runHuu a = evalStateT a Map.empty
 
 main2 = do
     initialize >>= print
-    countDevices >>= print
-    c <- countDevices
-    mapM_ (\ i -> getDeviceInfo i >>= print) [0..pred c]
-    let idid = 3
-    openInput idid >>= \case
+    openInput 3 >>= \case
         Left s -> runStream s
         Right e -> print e
   where
     noDevice = error "no default input device"
 
-runStream s = forever $ do
-    readEvents s >>= \case
+runStream s = runHuu . forever $ do
+    lift (readEvents s) >>= \case
         Left evs -> mapM_ procEvent evs
         Right NoError -> pure ()
-        Right e -> print e
-    threadDelay 1000
+        Right e -> lift $ print e
+    lift $ threadDelay 1000
 
+midiDown = 0x90
+midiUp = 0x80
+
+procEvent :: PMEvent -> Huu ()
 procEvent PMEvent{..} = do
-    print (timestamp, decodeMsg message)
+    when (status == midiDown) $ do
+        lift $ print (timestamp, dec)
+        modify $ Map.insert k v
+  where
+    dec@PMMsg{..} = decodeMsg message
+
+    k = fromIntegral data1
+
+    v = fromIntegral data2
