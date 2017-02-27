@@ -76,7 +76,7 @@ withPMMsg :: (PMMsg -> a) -> PMEvent -> a
 withPMMsg f PMEvent{..} = f $ decodeMsg message
 
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = withDeviceStream n $ runHuu . const (withTestEvents pe')
+midiMagic l n = runHuu $ withTestEvents pe'
 -- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe'
   where
     pe' = withPMMsg pe
