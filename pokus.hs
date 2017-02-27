@@ -86,7 +86,7 @@ experiment c = f
 
 
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = withDeviceStream n $ withEvents pe
+midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
   where
     pe :: PMEvent -> Huu ()
     pe PMEvent{..} = when (status == midiDown) $ do
@@ -119,8 +119,8 @@ openInput' n = openInput n >>= \case
 withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
 withDeviceStream n = bracket (openInput' n) close
 
-withEvents :: (PMEvent -> Huu b) -> PMStream -> IO a
-withEvents f s = runHuu . forever $ do
+withEvents :: MonadIO m => (PMEvent -> m ()) -> PMStream -> m ()
+withEvents f s = forever $ do
     liftIO (readEvents s) >>= \case
         Left evs -> mapM_ f evs
         Right NoError -> pure ()
