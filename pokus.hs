@@ -3,13 +3,11 @@
 module Main (main) where
 
 import Control.Arrow ((***))
-import Control.Concurrent (threadDelay)
 import qualified Data.Map.Strict as Map
 import Data.Monoid ()
 import System.Environment (getArgs)
 
 import Control.Monad.State
-import System.Random
 
 import Sound.PortMidi hiding (initialize)
 import qualified Sound.PortMidi as Midi
@@ -57,26 +55,8 @@ main' _ = putStrLn "usage: $PROG [DEVICE_ID]"
 main :: IO ()
 main = Midi.initialize >> getArgs >>= main'
 
-withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
-withTestEvents f = forever $ do
-    d1 <- liftIO $ randomRIO (1, 127)
-    d2 <- liftIO $ randomRIO (1, 127)
-    t <- liftIO $ time
-    f $ PMEvent
-        { timestamp = t
-        , message = encodeMsg PMMsg
-            { status = midiDown
-            , data1 = d1
-            , data2 = d2
-            }
-        }
-    liftIO $ threadDelay 100000
-
-withPMMsg :: (PMMsg -> a) -> PMEvent -> a
-withPMMsg f PMEvent{..} = f $ decodeMsg message
-
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = runHuu $ withTestEvents pe'
+midiMagic l _n = runHuu $ withTestEvents pe'
 -- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe'
   where
     pe' = withPMMsg pe

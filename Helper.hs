@@ -18,6 +18,7 @@ import Data.Maybe ()
 import Data.Monoid
 import Foreign.C.Types (CLong)
 import System.IO (IO, print)
+import System.Random (randomRIO)
 import Text.Show (Show, show)
 
 import Control.Monad.State
@@ -62,6 +63,24 @@ withEvents f s = forever $ do
     -- it is OK to check only so often, as eye won't process
     -- in at higher frequency than 100fps anyway...
     liftIO $ threadDelay 10000
+
+withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
+withTestEvents f = forever $ do
+    d1 <- liftIO $ randomRIO (1, 127)
+    d2 <- liftIO $ randomRIO (1, 127)
+    t <- liftIO $ time
+    f $ PMEvent
+        { timestamp = t
+        , message = encodeMsg PMMsg
+            { status = midiDown
+            , data1 = d1
+            , data2 = d2
+            }
+        }
+    liftIO $ threadDelay 100000
+
+withPMMsg :: (PMMsg -> a) -> PMEvent -> a
+withPMMsg f PMEvent{..} = f $ decodeMsg message
 
 midiDown :: CLong
 midiDown = 0x90
