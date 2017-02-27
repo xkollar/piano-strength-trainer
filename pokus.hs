@@ -2,10 +2,10 @@
 {-# LANGUAGE RecordWildCards #-}
 module Main (main) where
 
-import Control.Arrow ((***))
 import qualified Data.Map.Strict as Map
 import Data.Monoid ()
 import System.Environment (getArgs)
+import Foreign.C.Types (CLong)
 
 import Control.Monad.State
 
@@ -25,29 +25,57 @@ canvasH = 600
 canvasDim :: Size
 canvasDim = (canvasW, canvasH)
 
-midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l _n = runHuu $ withTestEvents pe'
--- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe'
+data MyElement = MyElement
+    { age :: Integer
+    , element :: Oval
+    }
+
+type GrState = StateT (Map.Map CLong MyElement) IO
+
+runMyState :: GrState a -> IO a
+runMyState a = evalStateT a Map.empty
+
+ageMod :: (Integer -> Integer) -> MyElement -> MyElement
+ageMod f me@MyElement{..} = me{age = f age}
+
+midiMagic :: Canvas -> DeviceID -> IO ()
+-- midiMagic c _n = runMyState $ withTestEvents pe'
+midiMagic c did = withDeviceStream did $ runMyState . withEvents pe'
   where
     pe' = withPMMsg pe
-    pe :: PMMsg -> Huu ()
-    pe ev@PMMsg{..} = when (status == midiDown) $ do
-        lift $ print ev
-        modify $ Map.insert k v
-        s <- gets Map.toList
-        -- As it turns out, we have to pass at least two points...
-        when (length s >= 2) $
-            void . lift $ l # coord (map whoop s)
+    pe :: PMMsg -> GrState ()
+    pe PMMsg{..} = when (status == midiDown) $ do
+        modify $ Map.mapWithKey af
+        gets (Map.lookup k) >>= \case
+            Nothing -> do
+                o <- liftIO $ createOval c
+                    [ size (7,7)
+                    , outlinewidth 0
+                    , position pos
+                    ]
+                modify . Map.insert k $ MyElement 0 o
+            Just MyElement{..} -> do
+                void . liftIO $ element # position pos
+
+        s <- gets Map.elems
+        forM_ s $ \ MyElement{..} -> void $ do
+            lift $ element # filling (color age)
       where
-        whoop = fixInst *** fixStren
+        color i = (n, n, n)
+          where
+            n = fromIntegral $ min (i * 4) 255 :: Int
+
+        af i e = if i == k
+            then ageMod (const 0) e
+            else ageMod succ e
+
+        pos = (fixInst k, fixStren data2)
 
         fixInst x = fromIntegral x * canvasW `div` 127
 
         fixStren x = (127-fromIntegral x) * canvasH `div` 127
 
-        k = fromIntegral data1
-
-        v = fromIntegral data2
+        k = data1
 
 mainGr :: DeviceID -> IO ()
 mainGr n = do
@@ -57,15 +85,8 @@ mainGr n = do
     c <- newCanvas mainW [size canvasDim, background "white"]
     pack l [Expand Off]
     pack c [Expand On, Fill Both]
-    a <- createLine c
-        [ coord []
-        , capstyle CapRound
-        , joinstyle JoinMiter
-        , filling "black"
-        , outlinewidth 1
-        ]
 
-    killMagic <- spawnEvent . always $ midiMagic a n
+    killMagic <- spawnEvent . always $ midiMagic c n
 
     finishHTk
 
