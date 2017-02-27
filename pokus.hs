@@ -44,12 +44,12 @@ mainGr n = do
         ]
 
     killMagic <- spawnEvent . always $ midiMagic a n
-    killExperiment <- spawnEvent . always $ experiment c 1
+    -- killExperiment <- spawnEvent . always $ experiment c 1
 
     finishHTk
 
     killMagic
-    killExperiment
+    -- killExperiment
 
 main' :: [String] -> IO ()
 main' [] = printDevices
@@ -61,16 +61,16 @@ main = Midi.initialize >> getArgs >>= main'
 
 --------------
 
-experiment :: Canvas -> Integer -> IO ()
-experiment c = f
-  where
-    f n = do
-        void $ createOval c
-            [ position (fromIntegral n * 4, fromIntegral n * 4)
-            , size (5,5)
-            ]
-        threadDelay 100000
-        f (succ n)
+-- experiment :: Canvas -> Integer -> IO ()
+-- experiment c = f
+--   where
+--     f n = do
+--         void $ createOval c
+--             [ position (fromIntegral n * 4, fromIntegral n * 4)
+--             , size (5,5)
+--             ]
+--         threadDelay 100000
+--         f (succ n)
 
 withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
 withTestEvents f = forever $ do
