@@ -16,29 +16,16 @@ import Sound.PortMidi hiding (initialize)
 import qualified Sound.PortMidi as Midi
 import HTk.Toplevel.HTk
 
-data NumberedDeviceInfo = NumberedDeviceInfo DeviceID DeviceInfo
+import Helper
 
-instance Show NumberedDeviceInfo where
-    show (NumberedDeviceInfo i DeviceInfo{..}) =
-        show i <> ": " <> name <> " (" <> intercalate "," inf <> ")"
-      where
-        inf = (interface:) . f output "output" $ f input "input" []
-        f b x = if b then (x:) else id
 
-getNumberedDeviceInfo :: DeviceID -> IO NumberedDeviceInfo
-getNumberedDeviceInfo i = NumberedDeviceInfo i <$> getDeviceInfo i
-
-listDevices :: IO [NumberedDeviceInfo]
-listDevices = do
-    c <- countDevices
-    sequence $ getNumberedDeviceInfo <$> [0..pred c]
-
-printDevices :: IO ()
-printDevices = listDevices >>= mapM_ print
-
+canvasW :: Distance
 canvasW = 800
+
+canvasH :: Distance
 canvasH = 600
 
+canvasDim :: Size
 canvasDim = (canvasW, canvasH)
 
 mainGr :: DeviceID -> IO ()
@@ -62,6 +49,7 @@ mainGr n = do
 
     finishHTk
     killMagic
+    killExperiment
 
 main' :: [String] -> IO ()
 main' [] = printDevices
@@ -84,7 +72,6 @@ experiment c = f
         threadDelay 100000
         f (succ n)
 
-
 midiMagic :: Line -> DeviceID -> IO ()
 midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
   where
@@ -96,50 +83,13 @@ midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
         void . lift $ l # coord (map whoop s)
       where
         whoop = fixInst *** fixStren
+
         fixInst n = fromIntegral n * canvasW `div` 127
+
         fixStren n = (127-fromIntegral n) * canvasH `div` 127
+
         dec@PMMsg{..} = decodeMsg message
 
         k = fromIntegral data1
 
         v = fromIntegral data2
-
---------------
-
-type Huu = StateT (Map.Map Int Int) IO
-
-runHuu :: Huu a -> IO a
-runHuu a = evalStateT a Map.empty
-
-openInput' :: DeviceID -> IO PMStream
-openInput' n = openInput n >>= \case
-    Left s -> pure s
-    Right e -> error (show e)
-
-withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
-withDeviceStream n = bracket (openInput' n) close
-
-withEvents :: MonadIO m => (PMEvent -> m ()) -> PMStream -> m ()
-withEvents f s = forever $ do
-    liftIO (readEvents s) >>= \case
-        Left evs -> mapM_ f evs
-        Right NoError -> pure ()
-        Right e -> liftIO $ print e
-    -- it is OK to check only so often, as eye won't process
-    -- in at higher frequency than 100fps anyway...
-    liftIO $ threadDelay 10000
-
-midiDown = 0x90
-midiUp = 0x80
-
-exampleProcEvent :: PMEvent -> Huu ()
-exampleProcEvent PMEvent{..} =
-    when (status == midiDown) $ do
-        lift $ print (timestamp, dec)
-        modify $ Map.insert k v
-  where
-    dec@PMMsg{..} = decodeMsg message
-
-    k = fromIntegral data1
-
-    v = fromIntegral data2
