@@ -9,6 +9,7 @@ import Data.Monoid ()
 import System.Environment (getArgs)
 
 import Control.Monad.State
+import System.Random
 
 import Sound.PortMidi hiding (initialize)
 import qualified Sound.PortMidi as Midi
@@ -41,6 +42,7 @@ mainGr n = do
         , filling "black"
         , outlinewidth 1
         ]
+
     killMagic <- spawnEvent . always $ midiMagic a n
     killExperiment <- spawnEvent . always $ experiment c 1
 
@@ -70,15 +72,36 @@ experiment c = f
         threadDelay 100000
         f (succ n)
 
+withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
+withTestEvents f = forever $ do
+    d1 <- liftIO $ randomRIO (1, 127)
+    d2 <- liftIO $ randomRIO (1, 127)
+    t <- liftIO $ time
+    f $ PMEvent
+        { timestamp = t
+        , message = encodeMsg PMMsg
+            { status = midiDown
+            , data1 = d1
+            , data2 = d2
+            }
+        }
+    liftIO $ threadDelay 100000
+
+withPMMsg :: (PMMsg -> a) -> PMEvent -> a
+withPMMsg f PMEvent{..} = f $ decodeMsg message
+
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
+midiMagic l n = withDeviceStream n $ runHuu . const (withTestEvents pe)
+-- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
   where
     pe :: PMEvent -> Huu ()
     pe PMEvent{..} = when (status == midiDown) $ do
         lift $ print (timestamp, dec)
         modify $ Map.insert k v
         s <- Map.toList <$> get
-        void . lift $ l # coord (map whoop s)
+        -- As it turns out, we have to pass at least two points...
+        when (length s >= 2) $
+            void . lift $ l # coord (map whoop s)
       where
         whoop = fixInst *** fixStren
 
