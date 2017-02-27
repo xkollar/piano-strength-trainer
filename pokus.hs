@@ -76,14 +76,15 @@ withPMMsg :: (PMMsg -> a) -> PMEvent -> a
 withPMMsg f PMEvent{..} = f $ decodeMsg message
 
 midiMagic :: Line -> DeviceID -> IO ()
-midiMagic l n = withDeviceStream n $ runHuu . const (withTestEvents pe)
--- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe
+midiMagic l n = withDeviceStream n $ runHuu . const (withTestEvents pe')
+-- midiMagic l n = withDeviceStream n $ runHuu . withEvents pe'
   where
-    pe :: PMEvent -> Huu ()
-    pe PMEvent{..} = when (status == midiDown) $ do
-        lift $ print (timestamp, dec)
+    pe' = withPMMsg pe
+    pe :: PMMsg -> Huu ()
+    pe ev@PMMsg{..} = when (status == midiDown) $ do
+        lift $ print ev
         modify $ Map.insert k v
-        s <- Map.toList <$> get
+        s <- gets Map.toList
         -- As it turns out, we have to pass at least two points...
         when (length s >= 2) $
             void . lift $ l # coord (map whoop s)
@@ -93,8 +94,6 @@ midiMagic l n = withDeviceStream n $ runHuu . const (withTestEvents pe)
         fixInst x = fromIntegral x * canvasW `div` 127
 
         fixStren x = (127-fromIntegral x) * canvasH `div` 127
-
-        dec@PMMsg{..} = decodeMsg message
 
         k = fromIntegral data1
 
