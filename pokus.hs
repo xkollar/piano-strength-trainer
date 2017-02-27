@@ -46,8 +46,8 @@ mainGr n = do
     devInfo <- getNumberedDeviceInfo n
     l <- newLabel mainW [text $ show devInfo]
     c <- newCanvas mainW [size canvasDim, background "white"]
-    pack l [Expand On]
-    pack c [Expand On]
+    pack l [Expand Off]
+    pack c [Expand On, Fill Both]
     a <- createLine c
         [ coord []
         , capstyle CapRound
@@ -60,14 +60,6 @@ mainGr n = do
 
     finishHTk
     kt
-
-magic :: Line -> Integer -> [(Distance,Distance)] -> IO ()
-magic l = f
-  where
-    f n s = do
-        l # coord s
-        threadDelay 10000
-        f (n+1) ((fromIntegral n * 10,  fromIntegral n * 5):s)
 
 main' :: [String] -> IO ()
 main' [] = printDevices
@@ -117,9 +109,6 @@ openInput' n = openInput n >>= \case
 withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
 withDeviceStream n = bracket (openInput' n) close
 
-main3 n = withDeviceStream n . withEvents $ \ ev -> do
-    lift $ print ev
-
 withEvents f s = runHuu . forever $ do
     lift (readEvents s) >>= \case
         Left evs -> mapM_ f evs
@@ -132,8 +121,8 @@ withEvents f s = runHuu . forever $ do
 midiDown = 0x90
 midiUp = 0x80
 
-procEvent :: PMEvent -> Huu ()
-procEvent PMEvent{..} = do
+exampleProcEvent :: PMEvent -> Huu ()
+exampleProcEvent PMEvent{..} = do
     when (status == midiDown) $ do
         lift $ print (timestamp, dec)
         modify $ Map.insert k v
