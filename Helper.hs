@@ -1,22 +1,29 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE NoImplicitPrelude #-}
 {-# LANGUAGE RecordWildCards #-}
 module Helper where
 
-import Control.Exception (bracket)
-import Control.Arrow ((***))
+import Prelude (error, fromIntegral, pred)
+
+import Control.Applicative (pure)
 import Control.Concurrent (threadDelay)
-import Data.Maybe
-import qualified Data.Map.Strict as Map
-import Data.Monoid
+import Control.Exception (bracket)
+import Data.Either (Either(Left, Right))
+import Data.Eq ((==))
+import Data.Function (($), (.), id)
+import Data.Functor ((<$>))
+import Data.Int (Int)
 import Data.List (intercalate)
+import Data.Maybe ()
+import Data.Monoid
 import Foreign.C.Types (CLong)
-import System.Environment (getArgs)
+import System.IO (IO, print)
+import Text.Show (Show, show)
 
 import Control.Monad.State
+import qualified Data.Map.Strict as Map
 
-import Sound.PortMidi hiding (initialize)
-import qualified Sound.PortMidi as Midi
-import HTk.Toplevel.HTk
+import Sound.PortMidi
 
 data NumberedDeviceInfo = NumberedDeviceInfo DeviceID DeviceInfo
 
