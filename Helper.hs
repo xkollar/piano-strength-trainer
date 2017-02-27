@@ -68,8 +68,8 @@ withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
 withTestEvents f = forever $ do
     d1 <- liftIO $ randomRIO (1, 127)
     d2 <- liftIO $ randomRIO (1, 127)
-    t <- liftIO $ time
-    f $ PMEvent
+    t <- liftIO time
+    f PMEvent
         { timestamp = t
         , message = encodeMsg PMMsg
             { status = midiDown

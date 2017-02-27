@@ -54,12 +54,12 @@ midiMagic c did = withDeviceStream did $ runMyState . withEvents pe'
                     , position pos
                     ]
                 modify . Map.insert k $ MyElement 0 o
-            Just MyElement{..} -> do
-                void . liftIO $ element # position pos
+            Just MyElement{..} -> void . liftIO
+                $ element # position pos
 
         s <- gets Map.elems
-        forM_ s $ \ MyElement{..} -> void $ do
-            lift $ element # filling (color age)
+        forM_ s $ \ MyElement{..} -> void . liftIO
+            $ element # filling (color age)
       where
         color i = (n, n, n)
           where
