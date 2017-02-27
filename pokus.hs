@@ -12,7 +12,8 @@ import System.Environment (getArgs)
 
 import Control.Monad.State
 
-import Sound.PortMidi
+import Sound.PortMidi hiding (initialize)
+import qualified Sound.PortMidi as Midi
 import HTk.Toplevel.HTk
 
 data NumberedDeviceInfo = NumberedDeviceInfo DeviceID DeviceInfo
@@ -56,10 +57,11 @@ mainGr n = do
         , outlinewidth 1
         ]
     koliecko <- createOval c [size (5,5)]
-    kt <- spawnEvent . always $ midiMagic a n
+    killMagic <- spawnEvent . always $ midiMagic a n
+    killExperiment <- spawnEvent . always $ experiment c 1
 
     finishHTk
-    kt
+    killMagic
 
 main' :: [String] -> IO ()
 main' [] = printDevices
@@ -67,23 +69,31 @@ main' [n] = mainGr $! read n
 main' _ = putStrLn "usage: $PROG [DEVICE_ID]"
 
 main :: IO ()
-main = do
-    initialize
-    getArgs >>= main'
+main = Midi.initialize >> getArgs >>= main'
 
 --------------
+
+experiment :: Canvas -> Integer -> IO ()
+experiment c = f
+  where
+    f n = do
+        createOval c
+            [ position (fromIntegral n * 4, fromIntegral n * 4)
+            , size (5,5)
+            ]
+        threadDelay 100000
+        f (succ n)
+
 
 midiMagic :: Line -> DeviceID -> IO ()
 midiMagic l n = withDeviceStream n $ withEvents pe
   where
     pe :: PMEvent -> Huu ()
-    pe PMEvent{..} = do
-        when (status == midiDown) $ do
-            lift $ print (timestamp, dec)
-            modify $ Map.insert k v
-            s <- Map.toList <$> get
-            void . lift $ (l # coord (map whoop s))
-            pure ()
+    pe PMEvent{..} = when (status == midiDown) $ do
+        lift $ print (timestamp, dec)
+        modify $ Map.insert k v
+        s <- Map.toList <$> get
+        void . lift $ l # coord (map whoop s)
       where
         whoop = fixInst *** fixStren
         fixInst n = fromIntegral n * canvasW `div` 127
@@ -109,20 +119,21 @@ openInput' n = openInput n >>= \case
 withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
 withDeviceStream n = bracket (openInput' n) close
 
+withEvents :: (PMEvent -> Huu b) -> PMStream -> IO a
 withEvents f s = runHuu . forever $ do
-    lift (readEvents s) >>= \case
+    liftIO (readEvents s) >>= \case
         Left evs -> mapM_ f evs
         Right NoError -> pure ()
-        Right e -> lift $ print e
+        Right e -> liftIO $ print e
     -- it is OK to check only so often, as eye won't process
     -- in at higher frequency than 100fps anyway...
-    lift $ threadDelay 10000
+    liftIO $ threadDelay 10000
 
 midiDown = 0x90
 midiUp = 0x80
 
 exampleProcEvent :: PMEvent -> Huu ()
-exampleProcEvent PMEvent{..} = do
+exampleProcEvent PMEvent{..} =
     when (status == midiDown) $ do
         lift $ print (timestamp, dec)
         modify $ Map.insert k v
