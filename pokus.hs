@@ -54,8 +54,9 @@ midiMagic c did = withDeviceStream did $ runMyState . withEvents pe'
                     , position pos
                     ]
                 modify . Map.insert k $ MyElement 0 o
-            Just MyElement{..} -> void . liftIO
-                $ element # position pos
+            Just MyElement{..} -> void . liftIO $ do
+                void $ element # position pos
+                putItemOnTop element
 
         s <- gets Map.elems
         forM_ s $ \ MyElement{..} -> void . liftIO
@@ -84,7 +85,7 @@ mainGr n = do
     l <- newLabel mainW [text $ show devInfo]
     c <- newCanvas mainW [size canvasDim, background "white"]
     pack l [Expand Off]
-    pack c [Expand On, Fill Both]
+    pack c [Expand On, Fill Both, Anchor Center]
 
     killMagic <- spawnEvent . always $ midiMagic c n
 
