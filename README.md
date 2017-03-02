@@ -3,6 +3,10 @@ MIDI Keyboard Trainer
 
 Simple practice tool for training piano fingering strength.
 
+The tool is rather simple
+
+![Screenshot](screenshots/screenshot-01.png)
+
 Can be used as an example how to use [PortMidi](http://hackage.haskell.org/package/PortMidi)
 (a Haskell binding for PortMedia/PortMidi)
 and [uni-htk](https://hackage.haskell.org/package/uni-htk)
