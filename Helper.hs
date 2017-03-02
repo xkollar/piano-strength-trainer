@@ -88,12 +88,13 @@ midiDown = 0x90
 midiUp :: CLong
 midiUp = 0x80
 
-type Huu = StateT (Map.Map Int Int) IO
+-- Example
+type ExampleState = StateT (Map.Map Int Int) IO
 
-runHuu :: Huu a -> IO a
-runHuu a = evalStateT a Map.empty
+runExample :: ExampleState a -> IO a
+runExample a = evalStateT a Map.empty
 
-exampleProcEvent :: PMEvent -> Huu ()
+exampleProcEvent :: PMEvent -> ExampleState ()
 exampleProcEvent PMEvent{..} =
     when (status == midiDown) $ do
         lift $ print (timestamp, dec)
