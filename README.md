@@ -18,7 +18,6 @@ More examples of uni-htk use can be found at
 TODO
 ====
 
-* Make `openDevice'` check for range, to avoid segfault.
 * Extract refresh rate of `withEvents` as parameter.
 * List only input devides (with no argument given).
 * Make possiblity to run against stream of random events.

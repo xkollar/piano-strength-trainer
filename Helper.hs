@@ -8,12 +8,13 @@ import Prelude (error, fromIntegral, pred)
 import Control.Applicative (pure)
 import Control.Concurrent (threadDelay)
 import Control.Exception (bracket)
+import Data.Bool (Bool)
 import Data.Either (Either(Left, Right))
 import Data.Eq ((==))
 import Data.Function (($), (.), id)
 import Data.Functor ((<$>))
 import Data.Int (Int)
-import Data.Ix (range)
+import Data.Ix (inRange, range)
 import Data.List (intercalate)
 import Data.Maybe ()
 import Data.Monoid
@@ -26,6 +27,7 @@ import Control.Monad.State
 import qualified Data.Map.Strict as Map
 
 import Sound.PortMidi
+
 
 data NumberedDeviceInfo = NumberedDeviceInfo DeviceID DeviceInfo
 
@@ -48,10 +50,18 @@ listDevices = getDeviceRange >>= mapM getNumberedDeviceInfo . range
 printDevices :: IO ()
 printDevices = listDevices >>= mapM_ print
 
+-- | Using DevideID that is out of range leads to Segfault
+-- instead of normal excpetion...
+isValidDeviceID :: DeviceID -> IO Bool
+isValidDeviceID n = (`inRange` n) <$> getDeviceRange
+
 openInput' :: DeviceID -> IO PMStream
-openInput' n = openInput n >>= \case
-    Left s -> pure s
-    Right e -> error (show e)
+openInput' n = do
+    b <- isValidDeviceID n
+    unless b $ error "Device out of range"
+    openInput n >>= \case
+        Left s -> pure s
+        Right e -> error (show e)
 
 withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
 withDeviceStream n = bracket (openInput' n) close

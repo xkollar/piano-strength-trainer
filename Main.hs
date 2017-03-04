@@ -3,7 +3,7 @@
 module Main (main) where
 
 import qualified Data.Map.Strict as Map
-import Data.Monoid ()
+import Data.Monoid ((<>))
 import System.Environment (getArgs)
 import Foreign.C.Types (CLong)
 
@@ -80,6 +80,8 @@ midiMagic c did = withDeviceStream did $ runMyState . withEvents pe'
 
 mainGr :: DeviceID -> IO ()
 mainGr n = do
+    b <- isValidDeviceID n
+    unless b . error $ "Invalid DeviceID: " <> show n
     mainW <- initHTk [text "MIDI Plot"]
     devInfo <- getNumberedDeviceInfo n
     l <- newLabel mainW [text $ show devInfo]
