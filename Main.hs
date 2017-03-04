@@ -40,7 +40,7 @@ ageMod f me@MyElement{..} = me{age = f age}
 
 midiMagic :: Canvas -> DeviceID -> IO ()
 -- midiMagic c _n = runMyState $ withTestEvents pe'
-midiMagic c did = withDeviceStream did $ runMyState . withEvents pe'
+midiMagic c did = withInputStream did $ runMyState . withEvents pe'
   where
     pe' = withPMMsg pe
     pe :: PMMsg -> GrState ()

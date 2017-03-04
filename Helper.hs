@@ -63,8 +63,8 @@ openInput' n = do
         Left s -> pure s
         Right e -> error (show e)
 
-withDeviceStream :: DeviceID -> (PMStream -> IO c) -> IO c
-withDeviceStream n = bracket (openInput' n) close
+withInputStream :: DeviceID -> (PMStream -> IO c) -> IO c
+withInputStream n = bracket (openInput' n) close
 
 withEvents :: MonadIO m => (PMEvent -> m ()) -> PMStream -> m ()
 withEvents f s = forever $ do
