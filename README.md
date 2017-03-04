@@ -18,7 +18,6 @@ More examples of uni-htk use can be found at
 TODO
 ====
 
-* Extract refresh rate of `withEvents` as parameter.
 * List only input devides (with no argument given).
 * Make possiblity to run against stream of random events.
 * Make random events less random (so it looks a little more like actual play).

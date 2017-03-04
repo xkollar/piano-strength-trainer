@@ -66,15 +66,15 @@ openInput' n = do
 withInputStream :: DeviceID -> (PMStream -> IO c) -> IO c
 withInputStream n = bracket (openInput' n) close
 
-withEvents :: MonadIO m => (PMEvent -> m ()) -> PMStream -> m ()
-withEvents f s = forever $ do
+withEvents :: MonadIO m => Int -> (PMEvent -> m ()) -> PMStream -> m ()
+withEvents n f s = forever $ do
     liftIO (readEvents s) >>= \case
         Left evs -> mapM_ f evs
         Right NoError -> pure ()
         Right e -> liftIO $ print e
     -- it is OK to check only so often, as eye won't process
     -- in at higher frequency than 100fps anyway...
-    liftIO $ threadDelay 10000
+    liftIO $ threadDelay n
 
 withTestEvents :: MonadIO m => (PMEvent -> m ()) -> m ()
 withTestEvents f = forever $ do
