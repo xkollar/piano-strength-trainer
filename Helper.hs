@@ -13,6 +13,7 @@ import Data.Eq ((==))
 import Data.Function (($), (.), id)
 import Data.Functor ((<$>))
 import Data.Int (Int)
+import Data.Ix (range)
 import Data.List (intercalate)
 import Data.Maybe ()
 import Data.Monoid
@@ -38,10 +39,11 @@ instance Show NumberedDeviceInfo where
 getNumberedDeviceInfo :: DeviceID -> IO NumberedDeviceInfo
 getNumberedDeviceInfo i = NumberedDeviceInfo i <$> getDeviceInfo i
 
+getDeviceRange :: IO (DeviceID, DeviceID)
+getDeviceRange = (,) 0 . pred <$> countDevices
+
 listDevices :: IO [NumberedDeviceInfo]
-listDevices = do
-    c <- countDevices
-    sequence $ getNumberedDeviceInfo <$> [0..pred c]
+listDevices = getDeviceRange >>= mapM getNumberedDeviceInfo . range
 
 printDevices :: IO ()
 printDevices = listDevices >>= mapM_ print
