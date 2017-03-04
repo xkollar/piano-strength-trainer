@@ -38,22 +38,22 @@ instance Show NumberedDeviceInfo where
         inf = (interface:) . f output "output" $ f input "input" []
         f b x = if b then (x:) else id
 
-getNumberedDeviceInfo :: DeviceID -> IO NumberedDeviceInfo
-getNumberedDeviceInfo i = NumberedDeviceInfo i <$> getDeviceInfo i
-
 getDeviceRange :: IO (DeviceID, DeviceID)
 getDeviceRange = (,) 0 . pred <$> countDevices
+
+-- | Using DevideID that is out of range leads to Segfault
+-- instead of normal excpetion...
+isValidDeviceID :: DeviceID -> IO Bool
+isValidDeviceID n = (`inRange` n) <$> getDeviceRange
+
+getNumberedDeviceInfo :: DeviceID -> IO NumberedDeviceInfo
+getNumberedDeviceInfo i = NumberedDeviceInfo i <$> getDeviceInfo i
 
 listDevices :: IO [NumberedDeviceInfo]
 listDevices = getDeviceRange >>= mapM getNumberedDeviceInfo . range
 
 printDevices :: IO ()
 printDevices = listDevices >>= mapM_ print
-
--- | Using DevideID that is out of range leads to Segfault
--- instead of normal excpetion...
-isValidDeviceID :: DeviceID -> IO Bool
-isValidDeviceID n = (`inRange` n) <$> getDeviceRange
 
 openInput' :: DeviceID -> IO PMStream
 openInput' n = do
