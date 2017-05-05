@@ -57,12 +57,12 @@ executable piano-strength-trainer
   other-extensions:    LambdaCase, NoImplicitPrelude, RecordWildCards
   
   -- Other library packages from which modules are imported.
-  build-depends:       base >=4.8 && <4.9
-                     , random >=1.1 && <1.2
-                     , mtl >=2.2 && <2.3
-                     , containers >=0.5 && <0.6
-                     , PortMidi >=0.1 && <0.2
-                     , uni-htk >=2.2 && <2.3
+  build-depends:       base >=4.8 && <5
+                     , random
+                     , mtl
+                     , containers
+                     , PortMidi
+                     , uni-htk
   
   -- Directories containing source files.
   -- hs-source-dirs:      

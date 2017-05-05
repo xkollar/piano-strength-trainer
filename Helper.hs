@@ -17,7 +17,7 @@ import Data.Int (Int)
 import Data.Ix (inRange, range)
 import Data.List (intercalate)
 import Data.Maybe ()
-import Data.Monoid
+import Data.Monoid ((<>))
 import Foreign.C.Types (CLong)
 import System.IO (IO, print)
 import System.Random (randomRIO)
